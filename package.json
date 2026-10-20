@@ -1,0 +1,32 @@
+{
+  "name": "q-voice",
+  "productName": "Q-Voice",
+  "version": "0.1.0",
+  "description": "Voice chat for League of Legends Solo Queue",
+  "main": "dist/main/index.js",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "postinstall": "node scripts/check-native.js",
+    "clean": "node scripts/clean.js",
+    "typecheck": "tsc -p tsconfig.main.json --noEmit && tsc -p tsconfig.renderer.json --noEmit",
+    "build": "node scripts/clean.js && tsc -p tsconfig.main.json && tsc -p tsconfig.renderer.json && node scripts/copy-static.js",
+    "dev": "npm run build && electron .",
+    "dist": "npm run build && electron-builder --win nsis",
+    "verify:native": "node scripts/verify-native.js",
+    "rebuild:native": "electron-rebuild -f -w uiohook-napi",
+    "test": "npm run build && node --test dist/test"
+  },
+  "dependencies": {
+    "electron-store": "8.2.0",
+    "livekit-client": "^2.22.1",
+    "uiohook-napi": "^1.5.4"
+  },
+  "devDependencies": {
+    "@electron/rebuild": "^4.2.0",
+    "@types/node": "^22.7.0",
+    "electron": "^44.1.0",
+    "electron-builder": "^26.15.3",
+    "typescript": "^5.6.0"
+  }
+}

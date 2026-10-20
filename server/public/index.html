@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>lolvoice</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🎙️</text></svg>" />
+<style>
+  :root {
+    --ink:#080b0f; --panel:#101720; --line:#1d2833;
+    --text:#e6ebf1; --muted:#77879a; --gold:#d8b26a; --red:#c9614f;
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; min-height:100dvh; display:grid; place-items:center; padding:1.5rem;
+    background:var(--ink); color:var(--text);
+    font:400 16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  #app { width:100%; max-width:25rem; }
+  h1 { font-size:2.1rem; letter-spacing:.05em; color:var(--gold); margin:0 0 .3rem; word-break:break-all; }
+  h1.sm { font-size:1.25rem; margin:0; }
+  p { color:var(--muted); font-size:.9rem; margin:0 0 1.4rem; }
+  p.err { color:var(--red); }
+  kbd { font:inherit; font-size:.8rem; padding:.05rem .35rem; border:1px solid var(--line);
+        border-bottom-width:2px; border-radius:4px; color:var(--text); }
+
+  button {
+    font:inherit; font-size:.9rem; cursor:pointer; border-radius:8px;
+    padding:.8rem 1.15rem; border:1px solid var(--line);
+    background:transparent; color:var(--muted);
+    transition:background .12s,color .12s,border-color .12s;
+  }
+  button:hover:not(:disabled) { color:var(--text); border-color:var(--muted); }
+  button:disabled { opacity:.5; cursor:default; }
+  button:focus-visible { outline:2px solid var(--gold); outline-offset:2px; }
+  button.gold { background:var(--gold); border-color:var(--gold); color:var(--ink); font-weight:500; }
+  button.gold:hover { color:var(--ink); }
+  .row { display:flex; gap:.6rem; flex-wrap:wrap; }
+  .row > button { flex:1; min-width:8rem; }
+
+  input[type=text] {
+    font:inherit; font-size:.95rem; width:100%; color:var(--text);
+    background:var(--panel); border:1px solid var(--line);
+    border-radius:8px; padding:.75rem .85rem; margin-bottom:.6rem;
+  }
+  input[type=text]:focus { outline:none; border-color:var(--gold); }
+  label { display:block; font-size:.72rem; letter-spacing:.14em; text-transform:uppercase;
+          color:var(--muted); margin-bottom:.4rem; }
+
+  .head { display:flex; align-items:center; justify-content:space-between;
+          gap:1rem; padding-bottom:.9rem; border-bottom:1px solid var(--line); }
+  .head span { font-size:.72rem; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); }
+
+  ul { list-style:none; margin:0 0 1.2rem; padding:0; }
+  li { display:flex; align-items:center; gap:.75rem; padding:.8rem 0; border-bottom:1px solid var(--line); }
+  .dot { width:.75rem; height:.75rem; border-radius:50%; border:1.5px solid var(--line); flex:none; }
+  li.talking .dot { background:var(--gold); border-color:var(--gold); box-shadow:0 0 0 .3rem rgb(216 178 106/.15); }
+  .who { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:.95rem; }
+  li.off .who { color:var(--muted); text-decoration:line-through; }
+  li.empty .who { color:var(--muted); }
+  li button { padding:.22rem .55rem; font-size:.72rem; }
+  li.off button.mute { color:var(--red); border-color:var(--red); }
+
+  #talk { width:100%; padding:1.05rem; margin-bottom:.6rem; font-weight:500; }
+  #talk.on { background:var(--gold); border-color:var(--gold); color:var(--ink); }
+
+  .link { font-size:.82rem; color:var(--text); background:var(--panel);
+          border:1px solid var(--line); border-radius:8px; padding:.7rem .85rem;
+          word-break:break-all; margin:0 0 .9rem; }
+  small { display:block; margin-top:1.6rem; color:#3c4854; font-size:.68rem; line-height:1.6; }
+
+  /* Rename lives outside #app so redrawing the room never steals focus mid-typing. */
+  #rename { position:fixed; inset:0; background:rgb(8 11 15/.82);
+            display:grid; place-items:center; padding:1.5rem; z-index:10; }
+  #rename[hidden] { display:none; }
+  #rename .card { width:100%; max-width:22rem; background:var(--panel);
+                  border:1px solid var(--line); border-radius:12px; padding:1.25rem; }
+  @media (prefers-reduced-motion:reduce) { * { transition:none !important; } }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="audio" hidden></div>
+
+<div id="rename" hidden>
+  <div class="card">
+    <label for="nameInput">Your name in this room</label>
+    <input type="text" id="nameInput" maxlength="20" autocomplete="off" />
+    <div class="row">
+      <button class="gold" id="nameSave">Save</button>
+      <button id="nameCancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/livekit-client@2/dist/livekit-client.umd.min.js"></script>
+<script type="module">
+import { roomKind } from './room.mjs';
+
+const LK    = window.LivekitClient;
+const CODE  = location.pathname.slice(1).toUpperCase();
+const KIND  = roomKind(CODE);
+const app   = document.getElementById('app');
+const sink  = document.getElementById('audio');
+const modal = document.getElementById('rename');
+const nameInput = document.getElementById('nameInput');
+
+const STORE = 'lolvoice.name';
+const ID_STORE = 'lolvoice.guestId';
+const MAX_NAME = 20;
+
+let room     = null;   // LiveKit Room once connected
+let mic      = null;   // our published microphone track
+let openMic  = false;  // false = push to talk
+let speaking = new Set();
+const muted  = new Set();
+
+const POOL = ['Quiet Wolf', 'Late Krug', 'Blue Gromp', 'Iron Raptor', 'Grim Drake', 'Swift Herald',
+              'Lone Ward', 'Cold Scuttle', 'Sharp Tower', 'Dry Minion', 'Slow Ping', 'Old Rune'];
+
+function myName() {
+  let n = '';
+  try { n = localStorage.getItem(STORE) || ''; } catch { /* private mode */ }
+  if (!n) n = POOL[Math.floor(Math.random() * POOL.length)];
+  return n;
+}
+function saveName(n) {
+  try { localStorage.setItem(STORE, n); } catch { /* private mode */ }
+}
+
+/**
+ * LiveKit disconnects a duplicate identity, so two guests who happened to pick
+ * the same nickname would kick each other out of the room. Identity is
+ * therefore a stable random id per browser, and the nickname travels separately
+ * as a display name.
+ */
+function myIdentity() {
+  let id = '';
+  try { id = localStorage.getItem(ID_STORE) || ''; } catch { /* private mode */ }
+  if (!id) {
+    const bytes = new Uint8Array(8);
+    crypto.getRandomValues(bytes);
+    id = 'guest-' + Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+    try { localStorage.setItem(ID_STORE, id); } catch { /* private mode */ }
+  }
+  return id;
+}
+
+const cleanName = (raw) =>
+  String(raw || '').trim().slice(0, MAX_NAME).replace(/[^\p{L}\p{N} _\-.]/gu, '').trim();
+
+const LEGAL = `<small>lolvoice isn't endorsed by Riot Games and doesn't reflect the views or
+  opinions of Riot Games or anyone officially involved in producing or managing Riot Games
+  properties. Riot Games and all associated properties are trademarks or registered trademarks
+  of Riot Games, Inc.</small>`;
+
+/* ------------------------------------------------ landing */
+
+/** No room in the URL: offer to make one. Rooms created here are random X rooms. */
+function landing(message, isError) {
+  app.innerHTML = `
+    <h1>lolvoice</h1>
+    <p ${isError ? 'class="err"' : ''}>${message || 'Voice for your team. No signup, no download, nothing recorded.'}</p>
+    <div class="row"><button class="gold" id="create">Create a room</button></div>
+    ${LEGAL}`;
+  on('create', async (e) => {
+    const btn = e.target;
+    btn.disabled = true;
+    btn.textContent = 'Creating…';
+    try {
+      const res = await fetch('/room', { method: 'POST' });
+      if (!res.ok) throw new Error('could not create a room');
+      const { roomName } = await res.json();
+      location.href = '/' + roomName;
+    } catch (err) {
+      landing(err.message || 'Could not create a room. Try again.', true);
+    }
+  });
+}
+
+/* ------------------------------------------------ lobby */
+
+function lobby(message, isError) {
+  app.innerHTML = `
+    <h1 class="sm">${esc(CODE)}</h1>
+    <p ${isError ? 'class="err"' : ''}>${message || 'Your mic stays off until you hold <kbd>Space</kbd>. Nothing is recorded.'}</p>
+    <label for="lobbyName">Your name</label>
+    <input type="text" id="lobbyName" maxlength="${MAX_NAME}" autocomplete="off" value="${esc(myName())}" />
+    <div class="link">${esc(location.href)}</div>
+    <div class="row">
+      <button class="gold" id="join">Join voice</button>
+      <button id="copy">Copy link</button>
+    </div>
+    <div class="row" style="margin-top:.6rem">
+      <button id="fresh">New room</button>
+    </div>
+    ${LEGAL}`;
+
+  const field = document.getElementById('lobbyName');
+  field.onchange = () => {
+    const n = cleanName(field.value);
+    if (n) saveName(n); else field.value = myName();
+  };
+  field.onkeydown = (e) => { if (e.key === 'Enter') join(); };
+
+  on('join', join);
+  on('fresh', () => (location.href = '/'));
+  on('copy', (e) => copyLink(e.target, 'Copy link'));
+}
+
+/* ------------------------------------------------ room */
+
+function draw() {
+  const people = [room.localParticipant, ...room.remoteParticipants.values()];
+  const seats = [...people, ...Array(Math.max(0, 5 - people.length)).fill(null)];
+  const live = !!mic && !mic.isMuted;
+
+  app.innerHTML = `
+    <div class="head"><h1 class="sm">${esc(CODE)}</h1><span>${people.length} / 5</span></div>
+    <ul>${seats.map((p) => {
+      if (!p) return `<li class="empty"><span class="dot"></span><span class="who">Open seat</span></li>`;
+      const me = p === room.localParticipant;
+      const off = muted.has(p.identity);
+      // Own dot shows transmit state, not sound. Silence and "not transmitting"
+      // otherwise look identical, which makes every problem impossible to diagnose.
+      const lit = me ? live : (speaking.has(p.identity) && !off);
+      return `<li class="${lit ? 'talking' : ''} ${off ? 'off' : ''}">
+        <span class="dot"></span>
+        <span class="who">${esc(p.name || 'Guest')}${me ? ' · you' : ''}</span>
+        ${me
+          ? `<button id="editName">Rename</button>`
+          : `<button class="mute" data-id="${esc(p.identity)}">${off ? 'Unmute' : 'Mute'}</button>`}
+      </li>`;
+    }).join('')}</ul>
+
+    <button id="talk" class="${live ? 'on' : ''}">
+      ${openMic ? 'Mic is open' : (live ? 'Talking' : 'Hold Space to talk')}
+    </button>
+    <div class="row">
+      <button id="mode">${openMic ? 'Push to talk' : 'Leave mic open'}</button>
+      <button id="copy">Copy link</button>
+      <button id="leave">Leave</button>
+    </div>
+    ${LEGAL}`;
+
+  document.querySelectorAll('button.mute').forEach((b) => {
+    b.onclick = () => toggleMute(b.dataset.id);
+  });
+
+  const talk = document.getElementById('talk');
+  talk.onpointerdown = () => talking(true);
+  talk.onpointerup = () => talking(false);
+  talk.onpointercancel = () => talking(false);
+  talk.onpointerleave = () => talking(false);
+
+  on('editName', openRename);
+  on('mode', () => { openMic = !openMic; talking(openMic); });
+  on('copy', (e) => copyLink(e.target, 'Copy link'));
+  on('leave', leave);
+}
+
+/* ------------------------------------------------ actions */
+
+async function join() {
+  const btn = document.getElementById('join');
+  const field = document.getElementById('lobbyName');
+  const wanted = cleanName(field?.value) || myName();
+  saveName(wanted);
+
+  btn.disabled = true;
+  btn.textContent = 'Connecting…';
+
+  try {
+    // Random rooms need no Riot lookup at all, which is why this path works
+    // with no production API key on the server. Roster rooms are refused here
+    // and belong to the desktop app.
+    const res = await fetch('/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ roomName: CODE, identity: myIdentity(), displayName: wanted }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'could not get a token');
+
+    room = new LK.Room({ adaptiveStream: false, dynacast: false });
+
+    room.on(LK.RoomEvent.TrackSubscribed, (t) => {
+      if (t.kind === 'audio') sink.appendChild(t.attach());
+    });
+    room.on(LK.RoomEvent.TrackUnsubscribed, (t) => t.detach().forEach((e) => e.remove()));
+    room.on(LK.RoomEvent.ActiveSpeakersChanged, (list) => {
+      speaking = new Set(list.map((p) => p.identity));
+      draw();
+    });
+    room.on(LK.RoomEvent.ParticipantConnected, draw);
+    room.on(LK.RoomEvent.ParticipantDisconnected, draw);
+    room.on(LK.RoomEvent.ParticipantNameChanged, draw);
+    room.on(LK.RoomEvent.Disconnected, () => {
+      cleanup();
+      lobby('You left the room.', false);
+    });
+
+    await room.connect(data.wsUrl, data.token);
+    await room.startAudio();          // the Join click is the gesture browsers require
+
+    // Create and mute BEFORE publishing. Publishing first and muting a moment later
+    // races the server's acknowledgement, and the first unmute gets dropped —
+    // which looks exactly like a broken microphone.
+    const track = await LK.createLocalAudioTrack({
+      echoCancellation: true, noiseSuppression: true, autoGainControl: true,
+    });
+    await track.mute();
+    await room.localParticipant.publishTrack(track, {
+      source: LK.Track.Source.Microphone, dtx: true, red: true,
+    });
+    mic = track;
+
+    draw();
+  } catch (e) {
+    cleanup();
+    lobby(micError(e), true);
+  }
+}
+
+async function talking(on) {
+  if (!mic) return;
+  if (!on && openMic) return;          // open mic ignores key and button release
+  await (on ? mic.unmute() : mic.mute());
+  draw();
+}
+
+function toggleMute(id) {
+  const p = room.remoteParticipants.get(id);
+  if (!p) return;
+  if (muted.has(id)) { muted.delete(id); p.setVolume(1); }
+  else { muted.add(id); p.setVolume(0); }
+  draw();
+}
+
+function leave() {
+  room?.disconnect();                  // Disconnected handler does the rest
+}
+
+function cleanup() {
+  room = null; mic = null; openMic = false;
+  speaking.clear(); muted.clear();
+  sink.innerHTML = '';
+}
+
+async function copyLink(btn, label) {
+  const original = label;
+  try {
+    await navigator.clipboard.writeText(location.href);
+    btn.textContent = 'Copied';
+  } catch {
+    btn.textContent = 'Copy failed';
+  }
+  setTimeout(() => { btn.textContent = original; }, 1600);
+}
+
+/* ------------------------------------------------ rename */
+
+function openRename() {
+  nameInput.value = room?.localParticipant?.name || myName();
+  modal.hidden = false;
+  nameInput.focus();
+  nameInput.select();
+}
+
+function closeRename() { modal.hidden = true; }
+
+async function commitRename() {
+  const n = cleanName(nameInput.value);
+  if (!n) { closeRename(); return; }
+  saveName(n);
+  try { await room?.localParticipant?.setName(n); } catch { /* rename is cosmetic */ }
+  closeRename();
+  if (room) draw();
+}
+
+document.getElementById('nameSave').onclick = commitRename;
+document.getElementById('nameCancel').onclick = closeRename;
+nameInput.onkeydown = (e) => {
+  if (e.key === 'Enter') commitRename();
+  if (e.key === 'Escape') closeRename();
+};
+modal.onclick = (e) => { if (e.target === modal) closeRename(); };
+
+/* ------------------------------------------------ helpers */
+
+function on(id, fn) { const el = document.getElementById(id); if (el) el.onclick = fn; }
+function esc(s) { return String(s).replace(/[<>&"]/g, (c) => ({ '<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;' }[c])); }
+
+function micError(e) {
+  const n = e?.name || '';
+  if (n === 'NotAllowedError') return 'Microphone blocked. Allow it in the address bar, then try again.';
+  if (n === 'NotFoundError') return 'No microphone found. Plug one in and try again.';
+  if (n === 'NotReadableError') return 'Another application is using your microphone.';
+  return e?.message || 'Could not join. Try again.';
+}
+
+/* ------------------------------------------------ push to talk */
+
+const typing = (t) => t instanceof HTMLElement && (t.tagName === 'INPUT' || t.isContentEditable);
+
+addEventListener('keydown', (e) => {
+  if (e.code === 'Space' && !e.repeat && mic && !typing(e.target)) { e.preventDefault(); talking(true); }
+});
+addEventListener('keyup', (e) => {
+  if (e.code === 'Space' && mic && !typing(e.target)) { e.preventDefault(); talking(false); }
+});
+// Alt-tabbing back into the game mid-hold would otherwise leave the mic open.
+addEventListener('blur', () => talking(false));
+
+/* ------------------------------------------------ start */
+
+if (!CODE) {
+  landing();
+} else if (!KIND) {
+  landing('That link is not a lolvoice room.', true);
+} else if (KIND === 'roster') {
+  // A roster room is derived from a live game's players and requires League
+  // membership verification, which a browser cannot provide.
+  lobby('This room belongs to a game in progress — open it in the Q-Voice app.', true);
+} else {
+  lobby();
+}
+</script>
+</body>
+</html>

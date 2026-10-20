@@ -1,0 +1,623 @@
+/* ---------------------------------------------------------------------------
+   Tokens lifted verbatim from the lolvoice browser client so the desktop app
+   and the web client are visibly the same product.
+   --------------------------------------------------------------------------- */
+:root {
+  --ink: #080b0f;
+  --panel: #101720;
+  --line: #1d2833;
+  --text: #e6ebf1;
+  --muted: #77879a;
+  --gold: #d8b26a;
+  --red: #c9614f;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--ink);
+  color: var(--text);
+  font: 400 16px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+/* --- shared primitives (browser client) ---------------------------------- */
+
+h1 {
+  font-size: 1.25rem;
+  letter-spacing: 0.05em;
+  color: var(--gold);
+  margin: 0;
+}
+
+label,
+.eyebrow {
+  display: block;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.4rem;
+}
+
+kbd {
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 0.05rem 0.35rem;
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  color: var(--text);
+}
+
+button {
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+  border-radius: 8px;
+  padding: 0.8rem 1.15rem;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+button:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--muted);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+button:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+button.gold {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: var(--ink);
+  font-weight: 500;
+}
+
+button.gold:hover {
+  color: var(--ink);
+}
+
+button.mini {
+  padding: 0.22rem 0.55rem;
+  font-size: 0.72rem;
+}
+
+select {
+  font: inherit;
+  font-size: 0.95rem;
+  width: 100%;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.75rem 0.85rem;
+}
+
+select:focus {
+  outline: none;
+  border-color: var(--gold);
+}
+
+.dot {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  border: 1.5px solid var(--line);
+  flex: none;
+  transition: background 0.12s, border-color 0.12s, box-shadow 0.12s;
+}
+
+.dot.talking {
+  background: var(--gold);
+  border-color: var(--gold);
+  box-shadow: 0 0 0 0.3rem rgb(216 178 106 / 0.15);
+}
+
+.dot.live {
+  background: var(--muted);
+  border-color: var(--muted);
+}
+
+small {
+  display: block;
+  color: #3c4854;
+  font-size: 0.68rem;
+  line-height: 1.6;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* --- top bar -------------------------------------------------------------- */
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1.1rem 0.75rem;
+  border-bottom: 1px solid var(--line);
+  -webkit-app-region: drag;
+  flex: none;
+}
+
+.head .state {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+  -webkit-app-region: no-drag;
+}
+
+.state.error {
+  color: var(--red);
+}
+
+/* --- two-column shell ----------------------------------------------------- */
+
+.shell {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr 13.5rem;
+}
+
+.main {
+  padding: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  overflow-y: auto;
+}
+
+.side {
+  border-left: 1px solid var(--line);
+  padding: 1.1rem 1rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  overflow-y: auto;
+}
+
+.block {
+  display: block;
+}
+
+/* --- room link (primary element) ------------------------------------------ */
+
+.link-row {
+  display: flex;
+  gap: 0.6rem;
+  align-items: stretch;
+}
+
+.link {
+  flex: 1;
+  min-width: 0;
+  font-size: 1rem;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.85rem 0.9rem;
+  user-select: text;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.link > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.link.empty {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.link-row button {
+  flex: none;
+  min-width: 6.2rem;
+}
+
+.link-row #joinBtn {
+  min-width: 4.4rem;
+}
+
+.manual {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.6rem;
+}
+
+.manual input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.65rem 0.75rem;
+  user-select: text;
+}
+
+.manual input:focus {
+  outline: none;
+  border-color: var(--gold);
+}
+
+/* --- mic mode ------------------------------------------------------------- */
+
+.seg {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.seg button {
+  flex: 1;
+}
+
+.bind-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.warn {
+  margin: 0.55rem 0 0;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: var(--gold);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--gold);
+  border-radius: 8px;
+  padding: 0.6rem 0.7rem;
+}
+
+.warn.severe {
+  color: var(--red);
+  border-left-color: var(--red);
+}
+
+/* --- microphone ----------------------------------------------------------- */
+
+.mic-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-top: 0.6rem;
+}
+
+.mic-state {
+  font-size: 0.82rem;
+  color: var(--muted);
+  min-width: 6.2rem;
+}
+
+.meter {
+  flex: 1;
+  height: 0.4rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.meter-fill {
+  height: 100%;
+  width: 0;
+  background: var(--gold);
+  transition: width 0.06s linear;
+}
+
+/* --- sidebar switches ----------------------------------------------------- */
+
+.switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.85rem;
+}
+
+.switch-row:last-of-type {
+  border-bottom: 0;
+}
+
+.switch input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.track {
+  display: block;
+  width: 2.1rem;
+  height: 1.15rem;
+  border-radius: 999px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  position: relative;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.thumb {
+  position: absolute;
+  top: 0.15rem;
+  left: 0.15rem;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  background: var(--muted);
+  transition: transform 0.12s, background 0.12s;
+}
+
+.switch input:checked + .track {
+  background: var(--gold);
+  border-color: var(--gold);
+}
+
+.switch input:checked + .track .thumb {
+  transform: translateX(0.95rem);
+  background: var(--ink);
+}
+
+.switch input:focus-visible + .track {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.side .spacer {
+  flex: 1;
+  min-height: 0.4rem;
+}
+
+.side-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.side-actions button {
+  flex: 1;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+/* --- participant list ----------------------------------------------------- */
+
+.room-eyebrow {
+  margin-top: 0.75rem;
+}
+
+.people {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.people li {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.28rem 0;
+  font-size: 0.82rem;
+  min-width: 0;
+}
+
+.people .who {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.people li.empty .who,
+.people li.pending .who {
+  color: var(--muted);
+}
+
+.people .role {
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  flex: none;
+}
+
+/* --- diagnostics disclosure ----------------------------------------------- */
+
+.diag {
+  border-top: 1px solid var(--line);
+  padding-top: 0.7rem;
+  margin-top: auto;
+}
+
+.diag > summary {
+  cursor: pointer;
+  list-style: none;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.diag > summary::-webkit-details-marker {
+  display: none;
+}
+
+.diag > summary::before {
+  content: '+ ';
+}
+
+.diag[open] > summary::before {
+  content: '- ';
+}
+
+.diag > summary:hover {
+  color: var(--text);
+}
+
+.diag-log {
+  margin: 0.6rem 0;
+  max-height: 9rem;
+  overflow-y: auto;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.6rem 0.7rem;
+  font-family: Consolas, 'Cascadia Mono', monospace;
+  font-size: 0.68rem;
+  line-height: 1.55;
+  color: var(--muted);
+  white-space: pre-wrap;
+  word-break: break-word;
+  user-select: text;
+}
+
+.diag-field {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.6rem;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.diag-field input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-size: 0.78rem;
+  font-family: Consolas, 'Cascadia Mono', monospace;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 0.4rem 0.55rem;
+  user-select: text;
+}
+
+.diag-field input:focus {
+  outline: none;
+  border-color: var(--gold);
+}
+
+/* --- legal strip ---------------------------------------------------------- */
+
+.legal {
+  flex: none;
+  padding: 0.55rem 1.1rem 0.7rem;
+  border-top: 1px solid var(--line);
+}
+
+/* --- keybind modal (mirrors the browser client's rename dialog) ------------ */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgb(8 11 15 / 0.82);
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  z-index: 10;
+}
+
+.modal .card {
+  width: 100%;
+  max-width: 22rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 1.25rem;
+}
+
+.modal h2 {
+  font-size: 1rem;
+  margin: 0 0 0.3rem;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.modal p {
+  color: var(--muted);
+  font-size: 0.82rem;
+  margin: 0 0 0.9rem;
+}
+
+.capture {
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  padding: 1.1rem;
+  text-align: center;
+  font-size: 1rem;
+  color: var(--muted);
+  margin-bottom: 0.9rem;
+}
+
+.capture.captured {
+  border-style: solid;
+  border-color: var(--gold);
+  color: var(--text);
+}
+
+.row {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.row > button {
+  flex: 1;
+  min-width: 8rem;
+}
+
+.modal .fallback {
+  width: 100%;
+  margin-bottom: 0.6rem;
+  font-size: 0.8rem;
+  padding: 0.55rem 0.7rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}

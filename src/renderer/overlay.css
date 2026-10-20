@@ -1,0 +1,136 @@
+/*
+ * Deliberately original: no League or Riot iconography, fonts, colours or
+ * layout language. Neutral dark pills with a single accent, sharing the
+ * lolvoice palette so the overlay and the app read as one product.
+ */
+:root {
+  --ink: rgb(8 11 15 / 0.62);
+  --line: rgb(29 40 51 / 0.9);
+  --text: #e6ebf1;
+  --muted: #77879a;
+  --gold: #d8b26a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: transparent;
+  overflow: hidden;
+  font: 400 13px/1.4 system-ui, -apple-system, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  cursor: default;
+}
+
+.shell {
+  height: 100%;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.grip {
+  -webkit-app-region: drag;
+  display: none;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gold);
+  background: var(--ink);
+  border: 1px dashed var(--gold);
+  border-radius: 7px;
+  padding: 3px 7px;
+  text-align: center;
+}
+
+body.dragging .grip {
+  display: block;
+}
+
+body.dragging .shell {
+  outline: 1px dashed rgb(216 178 106 / 0.5);
+  outline-offset: -2px;
+  border-radius: 10px;
+}
+
+.slots {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.slot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 5px 8px;
+  transition: border-color 90ms linear, background 90ms linear;
+}
+
+.slot.speaking {
+  border-color: var(--gold);
+  background: rgb(216 178 106 / 0.14);
+}
+
+.pip {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: none;
+  background: transparent;
+  border: 1.5px solid var(--muted);
+  transition: background 90ms linear, border-color 90ms linear;
+}
+
+.slot.present .pip {
+  background: var(--muted);
+}
+
+.slot.speaking .pip {
+  background: var(--gold);
+  border-color: var(--gold);
+}
+
+.role {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  width: 26px;
+  flex: none;
+}
+
+.slot.speaking .role {
+  color: var(--gold);
+}
+
+.who {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+  font-size: 12px;
+}
+
+.slot:not(.present) .who {
+  color: var(--muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}

@@ -1,0 +1,36 @@
+appId: gg.lolvoice.qvoice
+productName: Q-Voice
+copyright: Copyright © 2026 Q-Voice
+directories:
+  output: release
+  buildResources: build
+files:
+  - dist/**/*
+  - package.json
+  - node_modules/**/*
+  # Optional: Riot's published root PEM, which upgrades the Live Client Data
+  # connection from issuer-checking to full chain verification.
+  - certs/**/*
+  - "!**/*.map"
+  # Ship only the Windows prebuilt hook binary and none of the C sources.
+  - "!node_modules/uiohook-napi/prebuilds/darwin-*/**"
+  - "!node_modules/uiohook-napi/prebuilds/linux-*/**"
+  - "!node_modules/uiohook-napi/libuiohook/**"
+# The uiohook native binary must not be packed inside app.asar — it is dlopen'ed
+# at runtime and cannot be loaded from inside an archive.
+asar: true
+asarUnpack:
+  - "**/node_modules/uiohook-napi/**"
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  artifactName: ${productName}-Setup-${version}.${ext}
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Q-Voice

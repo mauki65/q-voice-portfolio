@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; media-src 'self' blob:;"
+    />
+    <title>Q-Voice</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="audioSink" hidden></div>
+
+    <div class="head">
+      <h1>Q-VOICE</h1>
+      <div id="state" class="state">
+        <span id="stateDot" class="dot"></span>
+        <span id="stateText">disconnected</span>
+      </div>
+    </div>
+
+    <div class="shell">
+      <main class="main">
+        <section class="block">
+          <span class="eyebrow">Room link</span>
+          <div class="link-row">
+            <div id="roomLink" class="link empty">No room yet</div>
+            <button id="joinBtn" class="gold hidden" type="button">Join</button>
+            <button id="copyBtn" class="gold" type="button" disabled>Copy link</button>
+          </div>
+          <p id="lookupWarn" class="warn severe hidden"></p>
+          <div id="manualJoin" class="manual hidden">
+            <input
+              id="manualLink"
+              type="text"
+              spellcheck="false"
+              autocomplete="off"
+              placeholder="Paste a teammate's link"
+            />
+            <button id="manualGo" type="button">Use it</button>
+          </div>
+        </section>
+
+        <section class="block">
+          <span class="eyebrow">Mic mode</span>
+          <div class="seg">
+            <button id="modeOpen" type="button">Open Mic</button>
+            <button id="modePtt" type="button">Push-to-Talk</button>
+          </div>
+          <div id="bindRow" class="bind-row">
+            <span>Hold</span>
+            <kbd id="bindLabel">—</kbd>
+            <button id="changeBind" class="mini" type="button">change</button>
+          </div>
+          <p id="conflictWarn" class="warn hidden"></p>
+          <p id="hookWarn" class="warn severe hidden"></p>
+        </section>
+
+        <section class="block">
+          <span class="eyebrow">Microphone</span>
+          <select id="deviceSelect" aria-label="Input device"></select>
+          <div class="mic-row">
+            <span id="micDot" class="dot"></span>
+            <span id="micState" class="mic-state">Mic off</span>
+            <div class="meter"><div id="meterFill" class="meter-fill"></div></div>
+            <button id="muteBtn" class="mini" type="button">Mute</button>
+          </div>
+          <button id="grantBtn" class="mini hidden" type="button" style="margin-top: 0.6rem">
+            Allow microphone access
+          </button>
+        </section>
+
+        <details id="diag" class="diag">
+          <summary>Diagnostics</summary>
+          <pre id="diagLog" class="diag-log"></pre>
+          <label class="diag-field">
+            <span>Token server</span>
+            <input id="tokenServerUrl" type="text" spellcheck="false" autocomplete="off" />
+          </label>
+          <button id="openLogs" class="mini" type="button">Open log folder</button>
+        </details>
+      </main>
+
+      <aside class="side">
+        <span class="eyebrow">Automation</span>
+
+        <div class="switch-row">
+          <span>Auto-connect</span>
+          <label class="switch">
+            <input type="checkbox" id="autoConnectEnabled" />
+            <span class="track"><span class="thumb"></span></span>
+          </label>
+        </div>
+
+        <div class="switch-row">
+          <span>Post link in champ&nbsp;select</span>
+          <label class="switch">
+            <input type="checkbox" id="autoPostLinkEnabled" />
+            <span class="track"><span class="thumb"></span></span>
+          </label>
+        </div>
+
+        <div class="switch-row">
+          <span>Overlay</span>
+          <label class="switch">
+            <input type="checkbox" id="overlayEnabled" />
+            <span class="track"><span class="thumb"></span></span>
+          </label>
+        </div>
+
+        <div class="switch-row">
+          <span>Noise suppression</span>
+          <label class="switch">
+            <input type="checkbox" id="noiseSuppressionEnabled" />
+            <span class="track"><span class="thumb"></span></span>
+          </label>
+        </div>
+
+        <span class="eyebrow room-eyebrow">In this room</span>
+        <ul id="people" class="people">
+          <li class="empty"><span class="dot"></span><span class="who">Nobody yet</span></li>
+        </ul>
+
+        <p id="overlayWarn" class="warn severe hidden"></p>
+        <button id="overlayRecheck" class="mini hidden" type="button">Re-check</button>
+
+        <div class="spacer"></div>
+        <div class="side-actions">
+          <button id="hideBtn" type="button">Tray</button>
+          <button id="quitBtn" type="button">Quit</button>
+        </div>
+      </aside>
+    </div>
+
+    <div class="legal">
+      <small
+        >Q-Voice isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games
+        or anyone officially involved in producing or managing Riot Games properties. Riot Games and
+        all associated properties are trademarks or registered trademarks of Riot Games, Inc.</small
+      >
+    </div>
+
+    <div id="modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="card">
+        <h2 id="modalTitle">Choose your talk key</h2>
+        <p>
+          Press the key or mouse button you want to hold while talking. Q-Voice only listens — the
+          game still receives the press.
+        </p>
+        <div id="capture" class="capture">Waiting for input…</div>
+        <p id="captureConflict" class="warn hidden"></p>
+        <p id="sideHint"></p>
+        <div class="row">
+          <button id="confirmBind" class="gold" type="button" disabled>Use this</button>
+          <button id="cancelBind" type="button">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="livekit-client.umd.js"></script>
+    <script type="module" src="renderer.js"></script>
+  </body>
+</html>
